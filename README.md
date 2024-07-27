@@ -34,9 +34,7 @@ Traceroute Logging Tool is a utility for performing traceroute to a specified ho
 
 Run the script with the required arguments:
 
-    ```bash
     python main.py <endpoint> [options]
-    ```
 
 ### Arguments
 
@@ -61,9 +59,7 @@ Run the script with the required arguments:
 
 2. Perform traceroute to `google.com` with a 2-second interval and log the results to a file:
 
-    ```bash
     python main.py google.com -i 2 -o /var/log/tracelog
-    ```
 
 ## Description
 
