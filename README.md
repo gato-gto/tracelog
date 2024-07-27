@@ -115,3 +115,7 @@ Here is an example of the output produced by the script:
 ## License
 
 This project is licensed under the [MIT License](MIT-LICENSE.txt).
+
+---
+
+You are permitted to copy, modify, and distribute this software.
