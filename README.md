@@ -59,7 +59,9 @@ Run the script with the required arguments:
 
 2. Perform traceroute to `google.com` with a 2-second interval and log the results to a file:
 
+    ```bash
     python main.py google.com -i 2 -o /var/log/tracelog
+    ```
 
 ## Description
 
@@ -83,10 +85,10 @@ Run the script with the required arguments:
 
 ## Example Output
 
-Here is an example of the output produced by the script 
-   
-   `python main.py 93.170.220.1`:
-  
+Here is an example of the output produced by the script:
+
+`python main.py 93.170.220.1`:
+
     2024-07-27 17:56:39 |    10.32.57.129    |    10.32.1.1    |    10.254.0.1   |    10.255.2.1   |   93.170.220.1
     2024-07-27 17:56:39 |        80.5        |       54.1      |       49.9      |       46.2      |       54.1
     2024-07-27 17:56:41 |        44.1        |      106.0      |       54.2      |       52.7      |       74.1
@@ -103,6 +105,17 @@ Here is an example of the output produced by the script
     2024-07-27 17:56:57 |        44.6        |       38.1      |       38.1      |       49.9      |       46.3
     2024-07-27 17:56:58 |        48.2        |       42.1      |       38.1      |       38.1      |       38.1
 
+## Output Description
+
+- The first row shows the IP addresses of each hop.
+- The second row shows the RTT (Round Trip Time) in milliseconds for each corresponding hop.
+- Each subsequent iteration adds a new set of measurements.
+- "Loss" indicates a packet loss at that specific hop.
+
 ## License
 
 This project is licensed under the [MIT License](MIT-LICENSE.txt).
+
+---
+
+You are permitted to copy, modify, and distribute this software.
