@@ -7,6 +7,7 @@ Traceroute Logging Tool is a utility for performing traceroute to a specified ho
 - Python 3.6+
 - [Scapy](https://scapy.net/) library
 - Python asynchronous libraries (asyncio)
+- [colorama](https://pypi.org/project/colorama/)
 
 ## Installation
 
@@ -48,6 +49,7 @@ Run the script with the required arguments:
 - `-c, --count`: Number of iterations (default: infinite).
 - `-p, --protocol`: Protocol to use (tcp, udp, icmp) (default: icmp).
 - `-o, --output`: File path to log the output (default: print to console).
+- `--port`: Port to use for TCP/UDP (optional).
 
 ### Examples
 
@@ -67,13 +69,14 @@ Run the script with the required arguments:
 
 ### Functions
 
-1. `create_packet(host, ttl, protocol)`: Creates a packet based on the specified protocol.
-2. `send_probe(host, ttl, timeout, protocol)`: Sends a packet with the specified TTL and returns the response.
-3. `traceroute(host, timeout, max_hops, protocol)`: Performs traceroute to the specified host.
-4. `pad_string(string, width)`: Pads a string to ensure it has the correct width.
-5. `print_row(values, file)`: Prints a row of the table.
-6. `remove_previous_duplicates(lst)`: Removes previous duplicates, keeping only the last occurrence.
-7. `main(endpoint, interval, timeout, max_hops, count, protocol, output_file)`: Main function to execute traceroute and print/log the results.
+1. `create_packet(host, ttl, protocol, port)`: Creates a packet based on the specified protocol and IP version.
+2. `send_probe(host, ttl, timeout, protocol, port)`: Sends a packet with the specified TTL and returns the response.
+3. `send_probe_with_semaphore(host, ttl, timeout, protocol, port, semaphore)`: Sends a probe with a semaphore to limit concurrency.
+4. `traceroute(host, timeout, max_hops, protocol, port, semaphore)`: Performs traceroute to the specified host.
+5. `pad_string(string, width)`: Pads a string to ensure it has the correct width.
+6. `print_row(values, file)`: Prints a row of the table.
+7. `remove_previous_duplicates(lst)`: Removes previous duplicates, keeping only the last occurrence.
+8. `main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port)`: Main function to execute traceroute and print/log the results.
 
 ### Logic
 
@@ -82,6 +85,7 @@ Run the script with the required arguments:
 3. It records the IP addresses and RTT (Round Trip Time) for each hop.
 4. It removes previous duplicates of IP addresses, keeping only the last occurrence.
 5. It outputs the results to the console or logs them to a file.
+6. It highlights packet losses in red using the `colorama` library.
 
 ## Example Output
 
