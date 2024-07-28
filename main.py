@@ -7,29 +7,11 @@ from datetime import datetime
 import socket
 from colorama import Fore, Style
 
-# Column widths for the printed table
 COLUMN_WIDTHS = [18, 15]
 
 
-def strip_color_codes(text):
-    """Removes color codes from the text."""
-    return text.replace(Fore.RED, "").replace(Style.RESET_ALL, "")
-
-
 async def send_packet(host, protocol, port, ttl, timeout=1):
-    """
-    Sends a packet with the specified protocol, port, and TTL and returns the response.
-
-    Parameters:
-    host (str): The target host.
-    protocol (str): The protocol to use ('tcp', 'udp', 'icmp').
-    port (int): The port to use for TCP and UDP.
-    ttl (int): Time-to-Live for the packet.
-    timeout (int): Timeout for waiting for a response in seconds.
-
-    Returns:
-    tuple: The source IP address of the response and the round-trip time in milliseconds.
-    """
+    """Sends a packet with the specified protocol, port, and TTL, and returns the response."""
     if protocol == 'tcp':
         pkt = IP(dst=host, ttl=ttl) / TCP(dport=port, flags='S')
     elif protocol == 'udp':
@@ -52,19 +34,7 @@ async def send_packet(host, protocol, port, ttl, timeout=1):
 
 
 async def traceroute(host, protocol, port, max_hops=32, timeout=1):
-    """
-    Performs a traceroute to the specified host and returns the results.
-
-    Parameters:
-    host (str): The target host.
-    protocol (str): The protocol to use ('tcp', 'udp', 'icmp').
-    port (int): The port to use for TCP and UDP.
-    max_hops (int): Maximum number of hops.
-    timeout (int): Timeout for waiting for a response in seconds.
-
-    Returns:
-    list: A list of tuples containing TTL, response IP address, and RTT for each hop.
-    """
+    """Performs a traceroute to the specified host and returns the result."""
     results = []
     for ttl in range(1, max_hops + 1):
         reply, rtt = await send_packet(host, protocol, port, ttl, timeout)
@@ -75,75 +45,33 @@ async def traceroute(host, protocol, port, max_hops=32, timeout=1):
 
 
 def get_column_width(index):
-    """
-    Returns the column width based on the index.
-
-    Parameters:
-    index (int): The index of the column.
-
-    Returns:
-    int: The width of the column.
-    """
+    """Returns the column width by index."""
     if index < len(COLUMN_WIDTHS):
         return COLUMN_WIDTHS[index]
     return COLUMN_WIDTHS[-1]
 
 
-def pad_string(string, width):
-    """
-    Pads string to ensure it has the correct width, considering color codes.
-
-    Parameters:
-    string (str): String to pad.
-    width (int): Desired width of the string.
-
-    Returns:
-    str: Padded string.
-    """
-    stripped_string = strip_color_codes(string)
-    total_padding = width - len(stripped_string)
-    left_padding = total_padding // 2
-    right_padding = total_padding - left_padding
-    return ' ' * left_padding + string + ' ' * right_padding
-
-
-def print_headers(headers):
-    """
-    Prints the table headers.
-
-    Parameters:
-    headers (list): List of header names.
-    """
+def print_headers(headers, file=None):
+    """Prints the table headers."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     header_line = " | ".join(header.center(get_column_width(i)) for i, header in enumerate(headers))
-    print(f"{timestamp} | {header_line}")
+    if file:
+        file.write(f"{timestamp} | {header_line}\n")
+    else:
+        print(f"{timestamp} | {header_line}")
 
 
-def print_values(values):
-    """
-    Prints the table values.
-
-    Parameters:
-    values (list): List of values to print.
-    """
+def print_values(values, file=None):
+    """Prints the table values."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    value_line = " | ".join(pad_string(value, get_column_width(i)) for i, value in enumerate(values))
-    print(f"{timestamp} | {value_line}")
+    value_line = " | ".join(value.center(get_column_width(i)) for i, value in enumerate(values))
+    if file:
+        file.write(f"{timestamp} | {value_line}\n")
+    else:
+        print(f"{timestamp} | {value_line}")
 
 
 async def main(endpoint, interval, protocol, port, max_hops, iterations, output_file=None):
-    """
-    Main function to execute the traceroute and print/log the results.
-
-    Parameters:
-    endpoint (str): The target endpoint.
-    interval (int): Interval between traceroute iterations in seconds.
-    protocol (str): The protocol to use ('tcp', 'udp', 'icmp').
-    port (int): The port to use for TCP and UDP protocols.
-    max_hops (int): Maximum number of hops.
-    iterations (int): Number of traceroute iterations.
-    output_file (str, optional): File path to log the output instead of printing to the console.
-    """
     columns = []
     hop_mapping = {}
     current_values = {}
@@ -183,15 +111,16 @@ async def main(endpoint, interval, protocol, port, max_hops, iterations, output_
             sorted_columns = sorted(columns, key=lambda col: hop_mapping[col])
 
             if sorted_columns != prev_headers:
-                print_headers(sorted_columns)
+                print_headers(sorted_columns, file)
                 prev_headers = sorted_columns
 
             sorted_values = [current_values.get(col, last_values.get(col, f"{Fore.RED}Loss{Style.RESET_ALL}")) for col in sorted_columns]
 
-            print_values(sorted_values)
+            print_values(sorted_values, file)
+
             if file:
-                file_values = [strip_color_codes(value) for value in sorted_values]
-                file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | " + " | ".join(file_values) + "\n")
+                plain_values = [v.replace(Fore.RED, '').replace(Style.RESET_ALL, '') for v in sorted_values]
+                file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | " + " | ".join(plain_values) + "\n")
 
             current_values = {}
             iteration_count += 1
