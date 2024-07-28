@@ -35,7 +35,9 @@ Traceroute Logging Tool is a utility for performing traceroute to a specified ho
 
 Run the script with the required arguments:
 
+    ```bash
     python main.py <endpoint> [options]
+    ```
 
 ### Arguments
 
