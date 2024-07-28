@@ -5,9 +5,15 @@ import asyncio
 from scapy.all import IP, TCP, UDP, ICMP, sr1
 from datetime import datetime
 import socket
+from colorama import Fore, Style
 
 # Column widths for the printed table
 COLUMN_WIDTHS = [18, 15]
+
+
+def strip_color_codes(text):
+    """Removes color codes from the text."""
+    return text.replace(Fore.RED, "").replace(Style.RESET_ALL, "")
 
 
 async def send_packet(host, protocol, port, ttl, timeout=1):
@@ -83,6 +89,24 @@ def get_column_width(index):
     return COLUMN_WIDTHS[-1]
 
 
+def pad_string(string, width):
+    """
+    Pads string to ensure it has the correct width, considering color codes.
+
+    Parameters:
+    string (str): String to pad.
+    width (int): Desired width of the string.
+
+    Returns:
+    str: Padded string.
+    """
+    stripped_string = strip_color_codes(string)
+    total_padding = width - len(stripped_string)
+    left_padding = total_padding // 2
+    right_padding = total_padding - left_padding
+    return ' ' * left_padding + string + ' ' * right_padding
+
+
 def print_headers(headers):
     """
     Prints the table headers.
@@ -103,7 +127,7 @@ def print_values(values):
     values (list): List of values to print.
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    value_line = " | ".join(value.center(get_column_width(i)) for i, value in enumerate(values))
+    value_line = " | ".join(pad_string(value, get_column_width(i)) for i, value in enumerate(values))
     print(f"{timestamp} | {value_line}")
 
 
@@ -143,7 +167,7 @@ async def main(endpoint, interval, protocol, port, max_hops, iterations, output_
             for data in results:
                 hop, host, rtt = data
                 column = f"{host}"
-                value = str(rtt) if rtt != -1 else "Loss"
+                value = str(rtt) if rtt != -1 else f"{Fore.RED}Loss{Style.RESET_ALL}"
 
                 if column not in columns:
                     columns.append(column)
@@ -162,11 +186,12 @@ async def main(endpoint, interval, protocol, port, max_hops, iterations, output_
                 print_headers(sorted_columns)
                 prev_headers = sorted_columns
 
-            sorted_values = [current_values.get(col, last_values.get(col, "Loss")) for col in sorted_columns]
+            sorted_values = [current_values.get(col, last_values.get(col, f"{Fore.RED}Loss{Style.RESET_ALL}")) for col in sorted_columns]
 
             print_values(sorted_values)
             if file:
-                file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | " + " | ".join(sorted_values) + "\n")
+                file_values = [strip_color_codes(value) for value in sorted_values]
+                file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | " + " | ".join(file_values) + "\n")
 
             current_values = {}
             iteration_count += 1

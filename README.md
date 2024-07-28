@@ -35,9 +35,7 @@ Traceroute Logging Tool is a utility for performing traceroute to a specified ho
 
 Run the script with the required arguments:
 
-    ```bash
     python main.py <endpoint> [options]
-    ```
 
 ### Arguments
 
@@ -71,23 +69,20 @@ Run the script with the required arguments:
 
 ### Functions
 
-1. `create_packet(host, ttl, protocol, port)`: Creates a packet based on the specified protocol and IP version.
-2. `send_probe(host, ttl, timeout, protocol, port)`: Sends a packet with the specified TTL and returns the response.
-3. `send_probe_with_semaphore(host, ttl, timeout, protocol, port, semaphore)`: Sends a probe with a semaphore to limit concurrency.
-4. `traceroute(host, timeout, max_hops, protocol, port, semaphore)`: Performs traceroute to the specified host.
-5. `pad_string(string, width)`: Pads a string to ensure it has the correct width.
-6. `print_row(values, file)`: Prints a row of the table.
-7. `remove_previous_duplicates(lst)`: Removes previous duplicates, keeping only the last occurrence.
-8. `main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port)`: Main function to execute traceroute and print/log the results.
+1. `send_packet(host, protocol, port, ttl, timeout)`: Sends a packet with the specified protocol, port, and TTL, and returns the response.
+2. `traceroute(host, protocol, port, max_hops, timeout)`: Performs traceroute to the specified host and returns the result.
+3. `get_column_width(index)`: Returns the column width by index.
+4. `print_headers(headers)`: Prints the table headers.
+5. `print_values(values)`: Prints the table values.
+6. `main(endpoint, interval, protocol, port, max_hops, iterations, output_file)`: Main function to execute traceroute and print/log the results.
 
 ### Logic
 
 1. The script resolves the domain name to an IP address.
 2. It performs traceroute by sending packets with increasing TTL values.
 3. It records the IP addresses and RTT (Round Trip Time) for each hop.
-4. It removes previous duplicates of IP addresses, keeping only the last occurrence.
-5. It outputs the results to the console or logs them to a file.
-6. It highlights packet losses in red using the `colorama` library.
+4. It outputs the results to the console or logs them to a file.
+5. It highlights packet losses in red using the `colorama` library for console output.
 
 ## Example Output
 
