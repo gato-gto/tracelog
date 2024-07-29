@@ -66,6 +66,24 @@ Run the script with the required arguments:
     python main.py google.com -i 2 -o /var/log/tracelog
     ```
 
+3. Perform traceroute to `example.com` using TCP protocol on port 80 with a maximum of 16 hops:
+
+    ```bash
+    python main.py example.com -p tcp --port 80 -n 16
+    ```
+
+4. Perform traceroute to `example.com` using UDP protocol with a packet size of 128 bytes and log the results to a file:
+
+    ```bash
+    python main.py example.com -p udp --packet_size 128 -o /var/log/tracelog
+    ```
+
+5. Perform traceroute to `example.com` with a 1-second interval, a timeout of 2 seconds, and log the results to a file:
+
+    ```bash
+    python main.py example.com -i 1 -t 2 -o /var/log/tracelog
+    ```
+
 ## Description
 
 ### Functions
