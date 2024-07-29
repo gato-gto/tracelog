@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 import logging
-from scapy.all import IP, IPv6, TCP, UDP, ICMP, ICMPv6EchoRequest, sr1
+from scapy.all import IP, IPv6, TCP, UDP, ICMP, ICMPv6EchoRequest, sr1, Raw
 from datetime import datetime
 import socket
 from colorama import init, Fore, Style
@@ -21,7 +21,7 @@ known_ips = {}
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def create_packet(host, ttl, protocol, port):
+def create_packet(host, ttl, protocol, port, packet_size):
     """
     Creates a packet based on the protocol and IP version.
 
@@ -30,10 +30,13 @@ def create_packet(host, ttl, protocol, port):
     ttl (int): Time-to-Live for the packet.
     protocol (str): Protocol to use ('tcp', 'udp', 'icmp').
     port (int, optional): Port to use for TCP/UDP.
+    packet_size (int): Size of the packet in bytes.
 
     Returns:
     Scapy packet: Constructed packet according to the protocol.
     """
+    payload = Raw(b'X' * (packet_size - 28))  # Subtract 28 bytes for IP/ICMP header
+
     try:
         socket.inet_pton(socket.AF_INET, host)
         ip_layer = IP(dst=host, ttl=ttl)
@@ -46,14 +49,14 @@ def create_packet(host, ttl, protocol, port):
         port = 80 if protocol == 'tcp' else 33434
 
     protocols = {
-        'tcp': ip_layer / TCP(dport=port, flags='S'),
-        'udp': ip_layer / UDP(dport=port),
-        'icmp': ip_layer / icmp_layer
+        'tcp': ip_layer / TCP(dport=port, flags='S') / payload,
+        'udp': ip_layer / UDP(dport=port) / payload,
+        'icmp': ip_layer / icmp_layer / payload
     }
     return protocols.get(protocol)
 
 
-async def send_probe(host, ttl, timeout, protocol, port):
+async def send_probe(host, ttl, timeout, protocol, port, packet_size):
     """
     Sends a packet with the specified TTL and returns the response based on the chosen protocol.
 
@@ -63,19 +66,19 @@ async def send_probe(host, ttl, timeout, protocol, port):
     timeout (float): Timeout for waiting for a response.
     protocol (str): Protocol to use ('tcp', 'udp', 'icmp').
     port (int): Port to use for TCP/UDP.
+    packet_size (int): Size of the packet in bytes.
 
     Returns:
     tuple: (TTL, IP address of the responder, RTT in milliseconds or 'Loss' if no response)
     """
-    packet = create_packet(host, ttl, protocol, port)
+    packet = create_packet(host, ttl, protocol, port, packet_size)
     if not packet:
         raise ValueError("Unsupported protocol")
 
     try:
         start_time = datetime.now().timestamp()
         reply = sr1(packet, verbose=0, timeout=timeout)
-        end_time = datetime.now().timestamp()
-        rtt = round((end_time - start_time) * 1000)
+        rtt = round((datetime.now().timestamp() - start_time) * 1000)
     except Exception as e:
         logging.error(f"Error sending probe: {e}")
         return ttl, "Error", "Loss"
@@ -83,12 +86,12 @@ async def send_probe(host, ttl, timeout, protocol, port):
     return ttl, reply.src if reply else "Not responded", rtt if reply else "Loss"
 
 
-async def send_probe_with_semaphore(host, ttl, timeout, protocol, port, semaphore):
+async def send_probe_with_semaphore(host, ttl, timeout, protocol, port, packet_size, semaphore):
     async with semaphore:
-        return await send_probe(host, ttl, timeout, protocol, port)
+        return await send_probe(host, ttl, timeout, protocol, port, packet_size)
 
 
-async def traceroute(host, timeout, max_hops, protocol, port, semaphore):
+async def traceroute(host, timeout, max_hops, protocol, port, packet_size, semaphore):
     """
     Performs traceroute to the specified host and returns the result.
 
@@ -98,20 +101,20 @@ async def traceroute(host, timeout, max_hops, protocol, port, semaphore):
     max_hops (int): Maximum number of hops.
     protocol (str): Protocol to use ('tcp', 'udp', 'icmp').
     port (int): Port to use for TCP/UDP.
+    packet_size (int): Size of the packet in bytes.
     semaphore (asyncio.Semaphore): Semaphore to limit the number of concurrent probes.
 
     Returns:
     dict: Mapping of TTL to response details (IP and RTT).
     """
-    tasks = [asyncio.create_task(send_probe_with_semaphore(host, ttl, timeout, protocol, port, semaphore)) for ttl in range(1, max_hops + 1)]
-    responses = await asyncio.gather(*tasks)
-
     results = {}
-    for ttl, ip, rtt in responses:
+    for ttl in range(1, max_hops + 1):
+        ttl, ip, rtt = await send_probe_with_semaphore(host, ttl, timeout, protocol, port, packet_size, semaphore)
         if ip == "Not responded":
             ip = known_ips.get(ttl, "Not responded")
         else:
             known_ips[ttl] = ip
+
         results[ttl] = {'ip': ip, 'rtt': rtt}
 
     data = {}
@@ -181,7 +184,7 @@ def remove_previous_duplicates(lst):
     return list(reversed(result))
 
 
-async def main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port):
+async def main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port, packet_size):
     """
     Main function to execute the traceroute and print the results in a table format.
 
@@ -194,6 +197,7 @@ async def main(endpoint, interval, timeout, max_hops, count, protocol, output_fi
     protocol (str): Protocol to use.
     output_file (str, optional): File path to log the output instead of printing to the console.
     port (int): Port to use for TCP/UDP.
+    packet_size (int): Size of the packet in bytes.
     """
     global known_ips
 
@@ -219,7 +223,7 @@ async def main(endpoint, interval, timeout, max_hops, count, protocol, output_fi
     try:
         while count == 0 or iteration_count < count:
             try:
-                results = await traceroute(endpoint_ip, timeout, max_hops, protocol, port, semaphore)
+                results = await traceroute(endpoint_ip, timeout, max_hops, protocol, port, packet_size, semaphore)
 
                 sorted_ttls = sorted(known_ips.keys())
                 sorted_ips = [known_ips[ttl] for ttl in sorted_ttls]
@@ -258,7 +262,8 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--protocol", type=str, default='icmp', choices=['tcp', 'udp', 'icmp'], help="Protocol to use (tcp, udp, icmp)")
     parser.add_argument("-o", "--output", type=str, help="File path to log the output instead of printing to the console")
     parser.add_argument("--port", type=int, help="Port to use for TCP/UDP")
+    parser.add_argument("--packet_size", type=int, default=64, help="Size of the packet in bytes")
 
     args = parser.parse_args()
 
-    asyncio.run(main(args.endpoint, args.interval, args.timeout, args.max_hops, args.count, args.protocol, args.output, args.port))
+    asyncio.run(main(args.endpoint, args.interval, args.timeout, args.max_hops, args.count, args.protocol, args.output, args.port, args.packet_size))
