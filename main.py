@@ -65,22 +65,21 @@ async def send_probe(host, ttl, timeout, protocol, port):
     port (int): Port to use for TCP/UDP.
 
     Returns:
-    tuple: (IP address of the responder, RTT in milliseconds or 'Loss' if no response)
+    tuple: (TTL, IP address of the responder, RTT in milliseconds or 'Loss' if no response)
     """
     packet = create_packet(host, ttl, protocol, port)
     if not packet:
         raise ValueError("Unsupported protocol")
 
-    start_time = datetime.now().timestamp()
-    loop = asyncio.get_event_loop()
     try:
-        reply = await loop.run_in_executor(None, lambda: sr1(packet, verbose=0, timeout=timeout))
+        start_time = datetime.now().timestamp()
+        reply = sr1(packet, verbose=0, timeout=timeout)
+        end_time = datetime.now().timestamp()
+        rtt = round((end_time - start_time) * 1000)
     except Exception as e:
         logging.error(f"Error sending probe: {e}")
         return ttl, "Error", "Loss"
 
-    end_time = datetime.now().timestamp()
-    rtt = round((end_time - start_time) * 1000, 1)
     return ttl, reply.src if reply else "Not responded", rtt if reply else "Loss"
 
 
@@ -104,14 +103,15 @@ async def traceroute(host, timeout, max_hops, protocol, port, semaphore):
     Returns:
     dict: Mapping of TTL to response details (IP and RTT).
     """
+    tasks = [asyncio.create_task(send_probe_with_semaphore(host, ttl, timeout, protocol, port, semaphore)) for ttl in range(1, max_hops + 1)]
+    responses = await asyncio.gather(*tasks)
+
     results = {}
-    for ttl in range(1, max_hops + 1):
-        ttl, ip, rtt = await send_probe_with_semaphore(host, ttl, timeout, protocol, port, semaphore)
+    for ttl, ip, rtt in responses:
         if ip == "Not responded":
             ip = known_ips.get(ttl, "Not responded")
         else:
             known_ips[ttl] = ip
-
         results[ttl] = {'ip': ip, 'rtt': rtt}
 
     data = {}
@@ -225,7 +225,6 @@ async def main(endpoint, interval, timeout, max_hops, count, protocol, output_fi
                 sorted_ips = [known_ips[ttl] for ttl in sorted_ttls]
 
                 sorted_ips = remove_previous_duplicates(sorted_ips)
-
                 if sorted_ips != prev_ips:
                     prev_ips = sorted_ips
                     print_row(sorted_ips, file)
