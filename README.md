@@ -1,6 +1,6 @@
 # Traceroute Logging Tool
 
-Traceroute Logging Tool is a utility for performing traceroute to a specified host and outputting the results in a tabular format with an option to log to a file.
+Traceroute Logging Tool is a utility for performing traceroute to a specified host and outputting the results in a tabular format with an option to log to a file. It highlights changes in the route and packet losses.
 
 ## Requirements
 
@@ -50,6 +50,7 @@ Run the script with the required arguments:
 - `-p, --protocol`: Protocol to use (tcp, udp, icmp) (default: icmp).
 - `-o, --output`: File path to log the output (default: print to console).
 - `--port`: Port to use for TCP/UDP (optional).
+- `--packet_size`: Size of the packet in bytes (default: 64).
 
 ### Examples
 
@@ -69,12 +70,15 @@ Run the script with the required arguments:
 
 ### Functions
 
-1. `send_packet(host, protocol, port, ttl, timeout)`: Sends a packet with the specified protocol, port, and TTL, and returns the response.
-2. `traceroute(host, protocol, port, max_hops, timeout)`: Performs traceroute to the specified host and returns the result.
-3. `get_column_width(index)`: Returns the column width by index.
-4. `print_headers(headers)`: Prints the table headers.
-5. `print_values(values)`: Prints the table values.
-6. `main(endpoint, interval, protocol, port, max_hops, iterations, output_file)`: Main function to execute traceroute and print/log the results.
+1. `create_packet(host, ttl, protocol, port, packet_size)`: Creates a packet based on the protocol and IP version.
+2. `send_probe(host, ttl, timeout, protocol, port, packet_size)`: Sends a packet with the specified TTL and returns the response.
+3. `send_probe_with_semaphore(host, ttl, timeout, protocol, port, packet_size, semaphore)`: Sends a packet with a semaphore to limit concurrency.
+4. `traceroute(host, timeout, max_hops, protocol, port, packet_size, semaphore)`: Performs traceroute to the specified host and returns the result.
+5. `pad_string(string, width)`: Pads string to ensure it has the correct width, considering color codes.
+6. `print_row(values, file=None)`: Prints a row of the table.
+7. `remove_previous_duplicates(lst)`: Removes previous duplicates, keeping only the last occurrence.
+8. `compare_routes(old_route, new_route)`: Compares the old route with the new route and highlights changes.
+9. `main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port, packet_size)`: Main function to execute traceroute and print/log the results.
 
 ### Logic
 
@@ -82,7 +86,7 @@ Run the script with the required arguments:
 2. It performs traceroute by sending packets with increasing TTL values.
 3. It records the IP addresses and RTT (Round Trip Time) for each hop.
 4. It outputs the results to the console or logs them to a file.
-5. It highlights packet losses in red using the `colorama` library for console output.
+5. It highlights packet losses and changes in the route using the `colorama` library for console output.
 
 ## Example Output
 
