@@ -184,6 +184,20 @@ def remove_previous_duplicates(lst):
     return list(reversed(result))
 
 
+def compare_routes(old_route, new_route):
+    """
+    Compare the old route with the new route and highlight changes.
+
+    Parameters:
+    old_route (list): Previous route as a list of IP addresses.
+    new_route (list): Current route as a list of IP addresses.
+
+    Returns:
+    list: List of IP addresses with changes highlighted.
+    """
+    return [Fore.RED + ip + Style.RESET_ALL if ip not in old_route else ip for ip in new_route]
+
+
 async def main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port, packet_size):
     """
     Main function to execute the traceroute and print the results in a table format.
@@ -230,8 +244,8 @@ async def main(endpoint, interval, timeout, max_hops, count, protocol, output_fi
 
                 sorted_ips = remove_previous_duplicates(sorted_ips)
                 if sorted_ips != prev_ips:
+                    print_row(compare_routes(prev_ips, sorted_ips), file)
                     prev_ips = sorted_ips
-                    print_row(sorted_ips, file)
 
                 row_values = []
                 for ip in sorted_ips:
