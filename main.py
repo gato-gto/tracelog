@@ -8,10 +8,10 @@ from datetime import datetime
 import socket
 from colorama import init, Fore, Style
 
-# Initialize colorama
+# Initialize colorama for colored output
 init(autoreset=True)
 
-# Define column widths
+# Define column widths for table formatting
 COLUMN_WIDTHS = [18, 15]
 
 # Global dictionary to store known IPs
