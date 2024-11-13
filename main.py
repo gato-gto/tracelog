@@ -20,7 +20,6 @@ known_ips = {}
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 def set_interface(interface):
     """
     Set the network interface for Scapy.
@@ -31,6 +30,35 @@ def set_interface(interface):
     conf.iface = interface
     logging.info(f"Using interface: {conf.iface}")
 
+def list_available_interfaces():
+    """
+    Log and return all available interfaces with MAC and IP.
+
+    Returns:
+    list: List of available interfaces.
+    """
+    available_interfaces = [iface for iface in conf.ifaces.values() if iface.mac and iface.ip]
+    if not available_interfaces:
+        logging.error("No valid interfaces with MAC and IP found.")
+    else:
+        logging.info("Available interfaces:")
+        for iface in available_interfaces:
+            logging.info(f"Interface: {iface.name}, MAC: {iface.mac}, IP: {iface.ip}")
+    return available_interfaces
+
+def select_default_interface():
+    """
+    Automatically select the default interface based on the lowest MAC address with an IP.
+
+    Returns:
+    str: Selected interface name.
+    """
+    available_interfaces = list_available_interfaces()
+    if not available_interfaces:
+        raise ValueError("No valid interfaces with MAC and IP found.")
+    selected_interface = min(available_interfaces, key=lambda x: x.mac)
+    logging.info(f"Automatically selected interface: {selected_interface.name}")
+    return selected_interface.name
 
 def create_packet(host, ttl, protocol, port, packet_size):
     """
@@ -66,7 +94,6 @@ def create_packet(host, ttl, protocol, port, packet_size):
     }
     return protocols.get(protocol)
 
-
 async def send_probe(host, ttl, timeout, protocol, port, packet_size):
     """
     Sends a packet with the specified TTL and returns the response based on the chosen protocol.
@@ -96,11 +123,9 @@ async def send_probe(host, ttl, timeout, protocol, port, packet_size):
 
     return ttl, reply.src if reply else "Not responded", rtt if reply else "Loss"
 
-
 async def send_probe_with_semaphore(host, ttl, timeout, protocol, port, packet_size, semaphore):
     async with semaphore:
         return await send_probe(host, ttl, timeout, protocol, port, packet_size)
-
 
 async def traceroute(host, timeout, max_hops, protocol, port, packet_size, semaphore):
     """
@@ -134,7 +159,6 @@ async def traceroute(host, timeout, max_hops, protocol, port, packet_size, semap
         if item.get('ip') == host:
             break
     return data
-
 
 def pad_string(string, width):
     """
@@ -230,6 +254,13 @@ async def main(endpoint, interval, timeout, max_hops, count, protocol, output_fi
     # Set the network interface
     if interface:
         set_interface(interface)
+    else:
+        try:
+            default_interface = select_default_interface()
+            set_interface(default_interface)
+        except ValueError as e:
+            logging.error(e)
+            return
 
     try:
         endpoint_ip = socket.gethostbyname(endpoint)
@@ -280,7 +311,6 @@ async def main(endpoint, interval, timeout, max_hops, count, protocol, output_fi
     finally:
         if file:
             file.close()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Perform traceroute using ICMP, TCP, or UDP.")
