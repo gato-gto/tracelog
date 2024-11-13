@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 import logging
-from scapy.all import IP, IPv6, TCP, UDP, ICMP, ICMPv6EchoRequest, sr1, Raw
+from scapy.all import IP, IPv6, TCP, UDP, ICMP, ICMPv6EchoRequest, sr1, Raw, conf
 from datetime import datetime
 import socket
 from colorama import init, Fore, Style
@@ -19,6 +19,17 @@ known_ips = {}
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def set_interface(interface):
+    """
+    Set the network interface for Scapy.
+
+    Parameters:
+    interface (str): Network interface to use.
+    """
+    conf.iface = interface
+    logging.info(f"Using interface: {conf.iface}")
 
 
 def create_packet(host, ttl, protocol, port, packet_size):
@@ -198,7 +209,7 @@ def compare_routes(old_route, new_route):
     return [Fore.RED + ip + Style.RESET_ALL if ip not in old_route else ip for ip in new_route]
 
 
-async def main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port, packet_size):
+async def main(endpoint, interval, timeout, max_hops, count, protocol, output_file, port, packet_size, interface):
     """
     Main function to execute the traceroute and print the results in a table format.
 
@@ -212,8 +223,13 @@ async def main(endpoint, interval, timeout, max_hops, count, protocol, output_fi
     output_file (str, optional): File path to log the output instead of printing to the console.
     port (int): Port to use for TCP/UDP.
     packet_size (int): Size of the packet in bytes.
+    interface (str): Network interface to use.
     """
     global known_ips
+
+    # Set the network interface
+    if interface:
+        set_interface(interface)
 
     try:
         endpoint_ip = socket.gethostbyname(endpoint)
@@ -277,7 +293,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", type=str, help="File path to log the output instead of printing to the console")
     parser.add_argument("--port", type=int, help="Port to use for TCP/UDP")
     parser.add_argument("--packet_size", type=int, default=64, help="Size of the packet in bytes")
+    parser.add_argument("--interface", type=str, help="Network interface to use")
 
     args = parser.parse_args()
 
-    asyncio.run(main(args.endpoint, args.interval, args.timeout, args.max_hops, args.count, args.protocol, args.output, args.port, args.packet_size))
+    asyncio.run(main(args.endpoint, args.interval, args.timeout, args.max_hops, args.count, args.protocol, args.output, args.port, args.packet_size, args.interface))
