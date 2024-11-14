@@ -21,23 +21,23 @@ Traceroute Logging Tool is a Python-based utility designed to perform traceroute
 
 1. Clone the repository or download the source code:
 
-    \```bash
+    ```bash
     git clone https://github.com/yourusername/traceroute-logging-tool.git
     cd traceroute-logging-tool
-    \```
+    ```
 
 2. Create and activate a virtual environment:
 
-    \```bash
+    ```bash
     python3 -m venv env
     source env/bin/activate  # On Windows: env\\Scripts\\activate
-    \```
+    ```
 
 3. Install dependencies:
 
-    \```bash
+    ```bash
     pip install -r requirements.txt
-    \```
+    ```
 
 ## Usage
 
@@ -65,39 +65,39 @@ Run the script with the required arguments:
 
 1. Perform traceroute to `8.8.8.8` using ICMP:
 
-    \```bash
+    ```bash
     python main.py 8.8.8.8 -p icmp
-    \```
+    ```
 
 2. Perform traceroute to `google.com` with a 2-second interval and log the results to a file:
 
-    \```bash
+    ```bash
     python main.py google.com -i 2 -o /var/log/tracelog
-    \```
+    ```
 
 3. Perform traceroute to `example.com` using TCP protocol on port 80 with a maximum of 16 hops:
 
-    \```bash
+    ```bash
     python main.py example.com -p tcp --port 80 -n 16
-    \```
+    ```
 
 4. Perform traceroute to `example.com` using UDP protocol with a packet size of 128 bytes and log the results to a file:
 
-    \```bash
+    ```bash
     python main.py example.com -p udp --packet_size 128 -o /var/log/tracelog
-    \```
+    ```
 
 5. Perform traceroute to `example.com` with a 1-second interval, a timeout of 2 seconds, and log the results to a file:
 
-    \```bash
+    ```bash
     python main.py example.com -i 1 -t 2 -o /var/log/tracelog
-    \```
+    ```
 
 6. Perform traceroute to `example.com` using a specific network interface:
 
-    \```bash
+    ```bash
     python main.py example.com --interface eth0
-    \```
+    ```
 
 ## Description
 
